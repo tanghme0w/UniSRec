@@ -9,5 +9,6 @@ unisrec_transform: ~
 topk: [10, 50]
 metrics: [HIT, NDCG]
 valid_metric: NDCG@10
+train_batch_size: 64
 eval_batch_size: 64
 stopping_step: 10

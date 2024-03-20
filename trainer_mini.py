@@ -227,7 +227,7 @@ class Trainer(AbstractTrainer):
                 sync_loss = self.sync_grad_loss()
 
             with torch.autocast(device_type=self.device.type, enabled=self.enable_amp):
-                losses = loss_func(interaction)
+                losses = loss_func(interaction, train_data.plm_embedding)
 
             if isinstance(losses, tuple):
                 loss = sum(losses)

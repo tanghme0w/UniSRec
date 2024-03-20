@@ -56,7 +56,8 @@ class CustomizedUniSRec(SASRec):
         pos_logits = torch.exp(pos_logits)
 
         neg_logits = torch.matmul(seq_output, pos_items_emb.transpose(0, 1)) / self.temperature
-        neg_logits = torch.where(same_pos_id, torch.tensor([0], dtype=torch.float, device=same_pos_id.device), neg_logits)
+        neg_logits = torch.where(same_pos_id, torch.tensor([0], dtype=torch.float, device=same_pos_id.device),
+                                 neg_logits)
         neg_logits = torch.exp(neg_logits).sum(dim=1)
 
         loss = -torch.log(pos_logits / neg_logits)
@@ -73,7 +74,8 @@ class CustomizedUniSRec(SASRec):
         pos_logits = torch.exp(pos_logits)
 
         neg_logits = torch.matmul(seq_output, seq_output_aug.transpose(0, 1)) / self.temperature
-        neg_logits = torch.where(same_pos_id, torch.tensor([0], dtype=torch.float, device=same_pos_id.device), neg_logits)
+        neg_logits = torch.where(same_pos_id, torch.tensor([0], dtype=torch.float, device=same_pos_id.device),
+                                 neg_logits)
         neg_logits = torch.exp(neg_logits).sum(dim=1)
 
         loss = -torch.log(pos_logits / neg_logits)
@@ -96,24 +98,35 @@ class CustomizedUniSRec(SASRec):
         loss = loss_seq_item + self.lam * loss_seq_seq
         return loss
 
-    def calculate_loss(self, interaction):
+    # def calculate_loss(self, interaction):
+    #     if self.train_stage == 'pretrain':
+    #         return self.pretrain(interaction)
+    #
+    #     # Loss for fine-tuning
+    #     item_seq = interaction[self.ITEM_SEQ]
+    #     item_seq_len = interaction[self.ITEM_SEQ_LEN]
+    #     item_emb_list = self.moe_adaptor(interaction['item_emb_list'])
+    #     seq_output = self.forward(item_seq, item_emb_list, item_seq_len)
+    #     test_item_emb = self.moe_adaptor(interaction['pos_item_emb'])
+    #
+    #     seq_output = F.normalize(seq_output, dim=1)
+    #     test_item_emb = F.normalize(test_item_emb, dim=1)
+    #
+    #     logits = torch.matmul(seq_output, test_item_emb.transpose(0, 1)) / self.temperature
+    #     pos_items = interaction[self.POS_ITEM_ID]
+    #     loss = self.loss_fct(logits, pos_items)
+    #     return loss
+
+    def calculate_loss(self, interaction, embedding: PLMEmb):
         if self.train_stage == 'pretrain':
             return self.pretrain(interaction)
-
         # Loss for fine-tuning
         item_seq = interaction[self.ITEM_SEQ]
         item_seq_len = interaction[self.ITEM_SEQ_LEN]
         item_emb_list = self.moe_adaptor(interaction['item_emb_list'])
         seq_output = self.forward(item_seq, item_emb_list, item_seq_len)
-        test_item_emb = self.moe_adaptor(interaction['pos_item_emb'])
-        if self.train_stage == 'transductive_ft':
-            test_item_emb = test_item_emb + self.item_embedding.weight
-
-        seq_output = F.normalize(seq_output, dim=1)
-        test_item_emb = F.normalize(test_item_emb, dim=1)
-
-        logits = torch.matmul(seq_output, test_item_emb.transpose(0, 1)) / self.temperature
-        pos_items = interaction[self.POS_ITEM_ID]
+        logits = embedding.get_scores(seq_output, self.moe_adaptor) / self.temperature
+        pos_items = torch.LongTensor(embedding.idx_convert(interaction[self.POS_ITEM_ID].cpu())).to(self.device)
         loss = self.loss_fct(logits, pos_items)
         return loss
 

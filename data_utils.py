@@ -6,11 +6,10 @@ from dataloader import CustomizedTrainDataloader, CustomizedFullSortEvalDataload
 
 
 # based on recbole.data.utils.data_preparation
-def build_dataloader(config, datasets: list[PretrainDataset]):
+def build_dataloader(config, datasets):
 
     train_dataset, valid_dataset, test_dataset = datasets
 
-    train_sampler = None
     valid_sampler = RepeatableSampler(
         phases=['train', 'valid', 'test'],
         dataset=valid_dataset,

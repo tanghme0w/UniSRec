@@ -19,20 +19,25 @@ def finetune(pretrained_file, fix_enc=True, **kwargs):
     config = Config(model=CustomizedUniSRec, dataset='', config_file_list=props, config_dict=kwargs)
     init_seed(config['seed'], config['reproducibility'])
     # custom configurations
-    config['mmap_idx_path'] = 'dataset/customized/mmap/mmap_idx_100'
-    config['mmap_idx_shape'] = (100,)
-    config['mmap_emb_shape'] = (100, 768)
-    config['mmap_emb_path'] = 'dataset/customized/mmap/mmap_data_100_768'
+    config['mmap_idx_path'] = 'dataset/customized/Scientific/mmap/mmap_idx_4386'
+    config['mmap_idx_shape'] = (4386,)
+    config['mmap_emb_shape'] = (4386, 768)
+    config['mmap_emb_path'] = 'dataset/customized/Scientific/mmap/mmap_emb_4386_768'
     # logger initialization
     init_logger(config)
     logger = getLogger()
     logger.info(config)
 
     # dataset filtering
-    dataset = PretrainDataset(config)
+    config['data_path'] = 'dataset/customized/Scientific/train'
+    train_dataset = PretrainDataset(config)
+    config['data_path'] = 'dataset/customized/Scientific/valid'
+    valid_dataset = PretrainDataset(config)
+    config['data_path'] = 'dataset/customized/Scientific/test'
+    test_dataset = PretrainDataset(config)
 
     # dataset splitting
-    train_data, valid_data, test_data = build_dataloader(config, [dataset, dataset, dataset])
+    train_data, valid_data, test_data = build_dataloader(config, [train_dataset, valid_dataset, test_dataset])
 
     # model loading and initialization
     model = CustomizedUniSRec(config, train_data.original_dataset).to(config['device'])
@@ -41,7 +46,6 @@ def finetune(pretrained_file, fix_enc=True, **kwargs):
     if pretrained_file != '':
         checkpoint = torch.load(pretrained_file)
         logger.info(f'Loading from {pretrained_file}')
-        logger.info(f'Transfer [{checkpoint["config"]["dataset"]}] -> [{dataset}]')
         model.load_state_dict(checkpoint['state_dict'], strict=False)
         if fix_enc:
             logger.info(f'Fix encoder parameters.')
