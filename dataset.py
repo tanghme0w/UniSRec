@@ -10,12 +10,12 @@ from tqdm import tqdm
 from interaction import cat_interactions
 
 
-class PretrainDataset(Dataset):
-    def __init__(self, config):
+class LazyLoadDataset(Dataset):
+    def __init__(self, config, split: str = ''):
         # get maximum interaction sequence length
         self.max_inter_length = config["MAX_ITEM_LIST_LENGTH"]
         # load data files
-        self.data_path = config['data_path']
+        self.data_path = os.path.join(config['data_path'], split)
         self._load_data()
         # do preprocessing
         self._data_preprocessing()  # has no effect for now

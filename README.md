@@ -1,110 +1,93 @@
-# UniSRec
+# MISSRec Implementation
 
-This is the official PyTorch implementation for the [paper](https://arxiv.org/abs/2206.05941):
-> Yupeng Hou*, Shanlei Mu*, Wayne Xin Zhao, Yaliang Li, Bolin Ding, Ji-Rong Wen. Towards Universal Sequence Representation Learning for Recommender Systems. KDD 2022.
+## 1  Train From Raw Text
+Set `train_from_rawtext=True` in `pretrain.yaml` to train from raw text.
 
----
+### 1.1  Data preparation
 
-*Updates*:
+1. **item metadata**
+   - item metadata should be a `.jsonl` file in the following format. 
+   ```text
+    {"item_id": 1, <key1>: <text>, <key2>: <text>, ...}
+    {"item_id": 2, <key1>: <text>, <key2>: <text>, ...}
+    {"item_id": 3, <key1>: <text>, <key2>: <text>, ...}
+   ...
+    ```
+   - `item_id` is compulsory and should be unique, other fields are optional.
+   - Zero index is used exclusively for user sequence padding, so there should be no item with item_id=0.
+   - Only fields specified in `selected_keys` will be encoded. Other fields will be ignored. See section 1.2 for details.
 
-* [Nov. 22, 2022] We added scripts and implementations of baselines FDSA and S^3-Rec [[link]](https://github.com/RUCAIBox/UniSRec/issues/4#issuecomment-1316045022).
-* [June 28, 2022] We updated some useful "mid product" files that can be obtained during the data preprocessing stage [[link]](dataset#useful-files), including:
-  1. Clean item text (`*.text`);
-  2. Index mapping between raw IDs and remapped IDs (`*.user2index`, `*.item2index`);
-* [June 16, 2022] We released the code and scripts for  preprocessing ours datasets [[link]](dataset#dataset-preprocessing).
+2. **interaction data**
+   - each interaction data file should be a `.jsonl` file in the following format.
+   ```text
+   {"user_id": 1, "user_sequence": [0, 0, ..., 0, 0, 57, 81, 61, 50, 69, 16, 37, 36, 99]}
+   {"user_id": 2, "user_sequence": [0, 0, ..., 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 82, 39, 63]}
+   {"user_id": 3, "user_sequence": [0, 0, ..., 0, 0, 0, 0, 60, 89, 74, 76, 78, 91, 88, 70]}
+   ```
+   - Interaction sequences should use left-side zero-padding. Each sequence should be padded to the length of 50.
+   - train, valid and test data should be manually sharded and organized as follows.
+   ```text
+   root_data_path/
+   ├── test
+   │   ├── test01.jsonl
+   │   ├── test02.jsonl
+   │   ...
+   │   
+   ├── train
+   │   ├── train01.jsonl
+   │   ├── train02.jsonl
+   │   ...
+   │   
+   └── valid
+       ├── valid01.jsonl
+       ├── valid02.jsonl
+       ...
+   ```
 
-## Overview
+### 1.2  Configuration in `pretrain.yaml`
 
-We propose **UniSRec**, which stands for **Uni**versal **S**equence representation learning for **Rec**ommendation. Aiming to learn more generalizable sequence representations, UniSRec utilizes the associated description text of an item to learn transferable representations across different domains and platforms. For learning *universal item representations*, we design a lightweight architecture based on parametric whitening and mixture-of-experts enhanced adaptor. For learning *universal sequence representations*, we introduce two kinds of contrastive learning tasks by sampling multi-domain negatives. With the pre-trained universal sequence representation model, our approach can be effectively transferred to new cross-domain and cross-platform recommendation scenarios in a parameter-efficient way, under either inductive or transductive settings.
+1. `data_path`: data root path that contains train, valid, and test data.
+2. `metadata_path`: path to the item metadata file.
+3. `language_model`: name of the language model for text embedding, a valid huggingface transformers model.
+4. `mmap_out`: output path for generated memory map files.
+5. `selected_keys`: fields that should be encoded in item metadata, a list of strings.
 
-![](asset/model.png)
+### 1.3  Run command
 
-## Requirements
-
-```
-recbole>=1.1.1
-python>=3.9.7
-cudatoolkit>=11.3.1
-pytorch>=1.11.0
-```
-
-## Download Datasets and Pre-trained Model
-
-Please download the processed downstream (or pre-trained, if needed) datasets and the pre-trained model from [Google Drive](https://drive.google.com/drive/folders/1Uik0fMk4oquV_bS9lXTZuExAYbIDkEMW?usp=sharing) or [百度网盘](https://pan.baidu.com/s/1zdP3tEw9X6Ys5YNO5TyNEQ) (密码 3cml).
-
-After unzipping, move `pretrain/` and `downstream/` to `dataset/`, and move `UniSRec-FHCKM-300.pth` to `saved/`.
-
-## Quick Start
-
-### Train and evaluate on downstream datasets
-
-Fine-tune the pre-trained UniSRec model in transductive setting.
-
-```
-python finetune.py -d Scientific -p saved/UniSRec-FHCKM-300.pth
-```
-
-*You can replace `Scientific` to `Pantry`, `Instruments`, `Arts`, `Office` or `OR` to reproduce the results reported in our paper.*
-
-Fine-tune the pre-trained model in inductive setting.
-
-```
-python finetune.py -d Scientific -p saved/UniSRec-FHCKM-300.pth --train_stage=inductive_ft
-```
-
-Train UniSRec from scratch (w/o pre-training).
-
-```
-python finetune.py -d Scientific
-```
-
-Run baseline SASRec.
-
-```
-python run_baseline.py -m SASRec -d Scientific --config_files=props/finetune.yaml --hidden_size=300
-```
-
-Please refer to [[link]](https://github.com/RUCAIBox/UniSRec/issues/4#issuecomment-1316045022) for more scripts of our baselines.
-
-### Pre-train from scratch
-
-Pre-train on one single GPU.
-
-```
+```bash
 python pretrain.py
 ```
 
-Pre-train with distributed data parallel on GPU:0-3.
+Optional parameters:
+- `-p <path_to_checkpoint>`: load checkpoint
 
+## 2  Train From Memory Map
+If you have generated memory maps from previous runs, you can skip preprocessing and directly train from existing memory map 
+
+Set `train_from_rawtext=True` in `pretrain.yaml` to train from memory map.
+
+### 2.1  Data preparation
+1. index mmap and embedding mmap generated from previous runs or by calling preprocessing script. 
+2. interaction file, with same requirements as mentioned in section 1.1
+
+### 2.2  Configuration in `pretrain.yaml`
+1. `mmap_idx_path`: path to index mmap.
+2. `mmap_idx_shape`: shape of index mmap, a list of integers
+3. `mmap_emb_path`: path to embedding mmap.
+4. `mmap_emb_shape`: shape of embedding mmap, a list of integers.
+
+### 2.3  Run command
+```bash
+python pretrain.py
 ```
-CUDA_VISIBLE_DEVICES=0,1,2,3 python ddp_pretrain.py
-```
+Optional parameters:
+- `-p <path_to_checkpoint>`: load checkpoint
 
-### Customized Datasets
+## 3  Infer User
 
-Please refer to [[link]](dataset#dataset-preprocessing) for details of data preprocessing. Then you can correspondingly try your customized datasets.
+## 4  Infer Item
 
-### Acknowledgement
+## 5  Evaluation
 
-The implementation is based on the open-source recommendation library [RecBole](https://github.com/RUCAIBox/RecBole).
-
-Please cite the following papers as the references if you use our codes or the processed datasets.
-
-```bibtex
-@inproceedings{hou2022unisrec,
-  author = {Yupeng Hou and Shanlei Mu and Wayne Xin Zhao and Yaliang Li and Bolin Ding and Ji-Rong Wen},
-  title = {Towards Universal Sequence Representation Learning for Recommender Systems},
-  booktitle = {{KDD}},
-  year = {2022}
-}
-
-
-@inproceedings{zhao2021recbole,
-  title={Recbole: Towards a unified, comprehensive and efficient framework for recommendation algorithms},
-  author={Wayne Xin Zhao and Shanlei Mu and Yupeng Hou and Zihan Lin and Kaiyuan Li and Yushuo Chen and Yujie Lu and Hui Wang and Changxin Tian and Xingyu Pan and Yingqian Min and Zhichao Feng and Xinyan Fan and Xu Chen and Pengfei Wang and Wendi Ji and Yaliang Li and Xiaoling Wang and Ji-Rong Wen},
-  booktitle={{CIKM}},
-  year={2021}
-}
-```
-
-Special thanks [@Juyong Jiang](https://github.com/juyongjiang) for the excellent DDP implementation ([#961](https://github.com/RUCAIBox/RecBole/pull/961)).
+## Other notes
+- `LazyLoadDataset` stores filenames and loads the file only when queried, it does not support random sampling.

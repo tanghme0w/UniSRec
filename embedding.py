@@ -8,12 +8,11 @@ class PLMEmb:
     def __init__(self, config):
         self.mmap_idx_path = config['mmap_idx_path']
         self.mmap_emb_path = config['mmap_emb_path']
-        self.mmap_idx_shape = config['mmap_idx_shape']
-        self.mmap_emb_shape = config['mmap_emb_shape']
+        self.mmap_idx_shape = tuple(config['mmap_idx_shape'])
+        self.mmap_emb_shape = tuple(config['mmap_emb_shape'])
         self.device = config['device']
 
-    # TODO: can we eliminate 'dataset' parameter here?
-    def __call__(self, dataset, interaction):
+    def __call__(self, interaction):
         item_seq = interaction['item_id_list']
         pos_item = interaction['item_id']
         idx_mmap = np.memmap(self.mmap_idx_path, dtype=np.int32, shape=self.mmap_idx_shape)

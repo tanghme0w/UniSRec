@@ -2,6 +2,7 @@ import os
 import torch
 from recbole.config import Config as RecBoleConfig
 
+
 class Config(RecBoleConfig):
     def _init_device(self):
         use_gpu = self.final_config_dict['use_gpu']

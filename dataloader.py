@@ -6,6 +6,9 @@ from recbole.data.dataloader.general_dataloader import FullSortEvalDataLoader
 
 from embedding import PLMEmb
 import numpy as np
+from recbole.sampler import RepeatableSampler
+from logging import getLogger
+from recbole.utils import set_color
 
 
 class CustomizedTrainDataloader(DataLoader):
@@ -35,13 +38,12 @@ class CustomizedTrainDataloader(DataLoader):
 
     def _init_batch_size_and_step(self):
         batch_size = self.config['train_batch_size']
-        # todo: distributed scenario
         self.step = batch_size
 
     def collate_fn(self, index):
         index = np.array(index)
         data = self.original_dataset[index]
-        transformed_data = self.plm_embedding(self.original_dataset, data)
+        transformed_data = self.plm_embedding(data)
         return transformed_data
 
 
@@ -54,7 +56,48 @@ class CustomizedFullSortEvalDataloader(FullSortEvalDataLoader):
     def collate_fn(self, index):
         index = np.array(index)
         data = self.original_dataset[index]
-        transformed_data = self.plm_embedding(self.original_dataset, data)
+        transformed_data = self.plm_embedding(data)
         positive_u = torch.arange(len(transformed_data))
         positive_i = transformed_data[self.iid_field]
         return transformed_data, None, positive_u, positive_i
+
+
+def build_dataloader(config, datasets):
+    train_dataset, valid_dataset, test_dataset = datasets
+
+    valid_sampler = RepeatableSampler(
+        phases=['valid', 'valid', 'test'],
+        dataset=valid_dataset,
+        distribution='uniform',
+        alpha=0.1
+    ).set_phase('valid')
+    test_sampler = valid_sampler.set_phase('test')  # set_phase returns a deep copy of the sampler with appointed phase
+
+    train_dataloader = CustomizedTrainDataloader(dataset=train_dataset, config=config)
+    valid_dataloader = CustomizedFullSortEvalDataloader(
+        config=config, dataset=valid_dataset, sampler=valid_sampler, shuffle=False
+    )
+    test_dataloader = CustomizedFullSortEvalDataloader(
+        config=config, dataset=test_dataset, sampler=test_sampler, shuffle=False
+    )
+
+    logger = getLogger()
+    logger.info(
+        set_color("[Training]: ", "pink")
+        + set_color("train_batch_size", "cyan")
+        + " = "
+        + set_color(f'[{config["train_batch_size"]}]', "yellow")
+        + set_color(" train_neg_sample_args", "cyan")
+        + ": "
+        + set_color(f'[{config["train_neg_sample_args"]}]', "yellow")
+    )
+    logger.info(
+        set_color("[Evaluation]: ", "pink")
+        + set_color("eval_batch_size", "cyan")
+        + " = "
+        + set_color(f'[{config["eval_batch_size"]}]', "yellow")
+        + set_color(" eval_args", "cyan")
+        + ": "
+        + set_color(f'[{config["eval_args"]}]', "yellow")
+    )
+    return train_dataloader, valid_dataloader, test_dataloader
