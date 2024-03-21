@@ -262,7 +262,7 @@ class Trainer(AbstractTrainer):
             dict: valid result
         """
         valid_result = self.evaluate(
-            valid_data, load_best_model=False, show_progress=show_progress
+            valid_data, model=self.model, show_progress=show_progress
         )
         valid_score = calculate_valid_score(valid_result, self.valid_metric)
         return valid_score, valid_result
@@ -531,7 +531,7 @@ class Trainer(AbstractTrainer):
 
     @torch.no_grad()
     def evaluate(
-        self, eval_data, load_best_model=True, model_file=None, show_progress=False
+        self, eval_data, model, show_progress=False
     ):
         r"""Evaluate the model based on the eval data.
 
@@ -550,17 +550,7 @@ class Trainer(AbstractTrainer):
             return
 
         self.eval_dataloader = eval_data
-
-        if load_best_model:
-            checkpoint_file = model_file or self.saved_model_file
-            checkpoint = torch.load(checkpoint_file, map_location=self.device)
-            self.model.load_state_dict(checkpoint["state_dict"])
-            self.model.load_other_parameter(checkpoint.get("other_parameter"))
-            message_output = "Loading model structure and parameters from {}".format(
-                checkpoint_file
-            )
-            self.logger.info(message_output)
-
+        self.model = model
         self.model.eval()
 
         if self.config["eval_type"] == EvaluatorType.RANKING:
@@ -595,6 +585,9 @@ class Trainer(AbstractTrainer):
             result = self._map_reduce(result, num_sample)
         self.wandblogger.log_eval_metrics(result, head="eval")
         return result
+
+    def infer_item(self):
+        pass
 
     def _map_reduce(self, result, num_sample):
         gather_result = {}

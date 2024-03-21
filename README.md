@@ -1,7 +1,7 @@
 # MISSRec Implementation
 
 ## 1  Train From Raw Text
-Set `train_from_rawtext=True` in `pretrain.yaml` to train from raw text.
+Set `preprocess=True` in `config.yaml` to train from raw text.
 
 ### 1.1  Data preparation
 
@@ -44,7 +44,7 @@ Set `train_from_rawtext=True` in `pretrain.yaml` to train from raw text.
        ...
    ```
 
-### 1.2  Configuration in `pretrain.yaml`
+### 1.2  Configuration in `config.yaml`
 
 1. `data_path`: data root path that contains train, valid, and test data.
 2. `metadata_path`: path to the item metadata file.
@@ -55,7 +55,7 @@ Set `train_from_rawtext=True` in `pretrain.yaml` to train from raw text.
 ### 1.3  Run command
 
 ```bash
-python pretrain.py
+python main.py
 ```
 
 Optional parameters:
@@ -64,13 +64,13 @@ Optional parameters:
 ## 2  Train From Memory Map
 If you have generated memory maps from previous runs, you can skip preprocessing and directly train from existing memory map 
 
-Set `train_from_rawtext=True` in `pretrain.yaml` to train from memory map.
+Set `preprocess=False` in `config.yaml` to train from memory map.
 
 ### 2.1  Data preparation
 1. index mmap and embedding mmap generated from previous runs or by calling preprocessing script. 
 2. interaction file, with same requirements as mentioned in section 1.1
 
-### 2.2  Configuration in `pretrain.yaml`
+### 2.2  Configuration in `config.yaml`
 1. `mmap_idx_path`: path to index mmap.
 2. `mmap_idx_shape`: shape of index mmap, a list of integers
 3. `mmap_emb_path`: path to embedding mmap.
@@ -78,7 +78,7 @@ Set `train_from_rawtext=True` in `pretrain.yaml` to train from memory map.
 
 ### 2.3  Run command
 ```bash
-python pretrain.py
+python main.py
 ```
 Optional parameters:
 - `-p <path_to_checkpoint>`: load checkpoint

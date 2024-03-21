@@ -11,5 +11,5 @@ feat_file = os.path.join(data_dir, 'Scientific.feat1CLS')
 
 feature = np.fromfile(feat_file, dtype=np.float32).reshape(-1, 768)
 
-idx = 4213
+idx = 123
 print(f"item{idx}: {feature[idx]}")

@@ -78,10 +78,6 @@ class LazyLoadDataset(Dataset):
         else:
             return self.inter_feat[[idx - self.current_offset for idx in index]]
 
-    # adapt to RecBole framework, has no effect
-    def num(self, key):
-        return 1
-
     def _data_preprocessing(self):
         pass
 

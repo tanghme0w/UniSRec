@@ -2,9 +2,11 @@ import json
 import os
 
 
+dataset = 'Scientific'
+split = 'valid'
 data_dir = '../dataset/downstream/Scientific'
-src_inter_file = os.path.join(data_dir, 'Scientific.test.inter')
-tgt_inter_file = '../dataset/customized/Scientific/interaction.jsonl'
+src_inter_file = os.path.join(data_dir, f'{dataset}.{split}.inter')
+tgt_inter_file = f'../dataset/customized/{dataset}/{split}/interaction.jsonl'
 MAX_ITEM_LIST_LEN = 50
 
 interaction = []

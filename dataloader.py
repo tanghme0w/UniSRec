@@ -48,10 +48,17 @@ class CustomizedTrainDataloader(DataLoader):
 
 
 class CustomizedFullSortEvalDataloader(FullSortEvalDataLoader):
-    def __init__(self, dataset, config, sampler, shuffle):
-        super().__init__(dataset=dataset, config=config, sampler=sampler, shuffle=shuffle)
+    def __init__(self, dataset, config, shuffle):
+        self.sampler = RepeatableSampler(
+            phases=['train', 'valid', 'test'],
+            dataset=dataset,
+            distribution='uniform',
+            alpha=0.1
+        )
+        super().__init__(dataset=dataset, config=config, sampler=self.sampler, shuffle=shuffle)
         self.original_dataset = dataset
         self.plm_embedding = PLMEmb(config)
+
 
     def collate_fn(self, index):
         index = np.array(index)
@@ -66,7 +73,7 @@ def build_dataloader(config, datasets):
     train_dataset, valid_dataset, test_dataset = datasets
 
     valid_sampler = RepeatableSampler(
-        phases=['valid', 'valid', 'test'],
+        phases=['train', 'valid', 'test'],
         dataset=valid_dataset,
         distribution='uniform',
         alpha=0.1

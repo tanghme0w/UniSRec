@@ -7,14 +7,14 @@ metrics: [HIT, NDCG]
 valid_metric: NDCG@10
 train_batch_size: 2048
 eval_batch_size: 64
-stopping_step: 1  # early stopping step
-epochs: 300   # maximum number of epochs
+stopping_step: 10  # early stopping step
+epochs: 2   # maximum number of epochs
 
-train_from_rawtext: False
+preprocess: False
 language_model: 'bert-base-uncased-local'
 selected_keys: ["tag1", "tag2", "title", "description"]
 metadata_path: ~
-mmap_out: ~
+mmap_out: .
 mmap_idx_path: 'dataset/customized/Scientific/mmap/mmap_idx_4386'
 mmap_idx_shape: [4386,]
 mmap_emb_path: 'dataset/customized/Scientific/mmap/mmap_emb_4386_768'
