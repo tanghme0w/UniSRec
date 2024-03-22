@@ -112,9 +112,9 @@ def main(**kwargs):
                 item_emb_list = model.moe_adaptor(user['item_emb_list'].to(config['device']))
                 model_output = model.forward(item_seq, item_emb_list, item_seq_len)
                 model_output = torch.nn.functional.normalize(model_output).cpu().numpy()
-            uid = np.array(user['user_id']).reshape(-1, 1)
+            uid = np.array(user['user_id'], dtype=np.float32).reshape(-1, 1)
             batch_result = np.concatenate([uid, model_output], axis=1)
-            result = np.concatenate(result, batch_result) if result is not None else batch_result
+            result = np.concatenate([result, batch_result]) if result is not None else batch_result
             if result.shape[0] >= 100000:
                 np.save(os.path.join(config['mmap_out'], f"all_user_embedding_{file_count}.npy"), result)
                 file_count += 1
