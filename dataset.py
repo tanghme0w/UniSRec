@@ -11,11 +11,11 @@ from interaction import cat_interactions
 
 
 class LazyLoadDataset(Dataset):
-    def __init__(self, config, split: str = ''):
+    def __init__(self, config, data_path):
         # get maximum interaction sequence length
         self.max_inter_length = config["MAX_ITEM_LIST_LENGTH"]
         # load data files
-        self.data_path = os.path.join(config['data_path'], split)
+        self.data_path = data_path
         self._load_data()
         # do preprocessing
         self._data_preprocessing()  # has no effect for now

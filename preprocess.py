@@ -23,14 +23,13 @@ def build_mmap(
     # read json file
     with open(config['metadata_path']) as mdf:
         for line in tqdm(mdf.readlines(), "processing metadata jsonl "):
-            # deal with NaN
-            item_entry = json.loads(line.replace("NaN", '""').replace("null", '""'))
+            item_entry = json.loads(line)
 
             # register item id
             all_item_ids.append(item_entry['item_id'])
 
             # build combined text entry
-            item_text = "".join([item_entry[key] + "; " for key in selected_keys])
+            item_text = "".join([str(item_entry[key]) + "; " for key in selected_keys])
             all_item_text.append(item_text)
 
             # get embedding and convert to numpy

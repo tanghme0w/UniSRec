@@ -25,7 +25,7 @@ def main(**kwargs):
     logger.info(config)
 
     # get language model embedding
-    config['mmap_out'] = args.mmap_out or config['mmap_out']  # commandline argument overrides config file
+    config['mmap_out'] = args.out or config['mmap_out']  # commandline argument overrides config file
     if config['preprocess']:
         assert config['language_model'] is not None
         assert config['metadata_path'] is not None
@@ -55,19 +55,21 @@ def main(**kwargs):
 
     # create dataset and dataloader
     config['data_path'] = args.data or config['data_path']  # commandline argument overrides config file
+    train_path = os.path.join(config['data_path'], 'train') if args.mode == 'train' else config['data_path']
     train_loader = CustomizedTrainDataloader(
-        dataset=LazyLoadDataset(config, 'train' if args.mode == 'train' else ''),
+        dataset=LazyLoadDataset(config, train_path),
         config=config
     ) if args.mode in ['train', 'infer-user'] else None
 
     valid_loader = CustomizedFullSortEvalDataloader(
-        dataset=LazyLoadDataset(config, 'valid'),
+        dataset=LazyLoadDataset(config, os.path.join(config['data_path'], 'valid')),
         config=config,
         shuffle=False
     ) if args.mode == 'train' else None
 
+    test_path = os.path.join(config['data_path'], 'test') if args.mode == 'train' else config['data_path']
     test_loader = CustomizedFullSortEvalDataloader(
-        dataset=LazyLoadDataset(config, 'test' if args.mode == 'train' else ''),
+        dataset=LazyLoadDataset(config, test_path),
         config=config,
         shuffle=False
     ) if args.mode in ['train', 'eval'] else None
@@ -108,6 +110,7 @@ def main(**kwargs):
                 item_emb_list = model.moe_adaptor(user['item_emb_list'].to(config['device']))
                 model_output = model.forward(item_seq, item_emb_list, item_seq_len)
                 model_output = torch.nn.functional.normalize(model_output).cpu().numpy()
+            uid = user['user_id']
             user_emb.append(model_output)
         user_emb = np.concatenate(user_emb)
         np.save(os.path.join(config['mmap_out'], "all_user_embedding.npy"), user_emb)
@@ -124,7 +127,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='eval',
                         choices=['train', 'eval', 'infer-user', 'infer-item'],
                         help='run mode (train, eval, infer-user, infer-item)')
-    parser.add_argument('--mmap-out', type=str, default='',
+    parser.add_argument('--out', type=str, default='',
                         help='memory map & item embedding output path')
     args, unparsed = parser.parse_known_args()
     main()
