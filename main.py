@@ -11,6 +11,7 @@ from dataset import LazyLoadDataset
 from dataloader import CustomizedTrainDataloader, CustomizedFullSortEvalDataloader
 from preprocess import build_mmap
 import numpy as np
+from tqdm import tqdm
 
 
 def main(**kwargs):
@@ -46,7 +47,7 @@ def main(**kwargs):
     model = MISSRec(config).to(config['device'])
     if args.checkpoint != '':
         checkpoint = torch.load(args.checkpoint)
-        logger.info(f'Loading from {checkpoint}')
+        logger.info(f'Loading from {args.checkpoint}')
         model.load_state_dict(checkpoint['state_dict'], strict=False)
     logger.info(model)
 
@@ -102,18 +103,23 @@ def main(**kwargs):
 
     if args.mode == 'infer-user':
         model.eval()
-        user_emb = []
-        for user in train_loader:
+        result = None
+        file_count = 0
+        for user in tqdm(train_loader):
             with torch.no_grad():
                 item_seq = user['item_id_list'].to(config['device'])
                 item_seq_len = user['item_length'].to(config['device'])
                 item_emb_list = model.moe_adaptor(user['item_emb_list'].to(config['device']))
                 model_output = model.forward(item_seq, item_emb_list, item_seq_len)
                 model_output = torch.nn.functional.normalize(model_output).cpu().numpy()
-            uid = user['user_id']
-            user_emb.append(model_output)
-        user_emb = np.concatenate(user_emb)
-        np.save(os.path.join(config['mmap_out'], "all_user_embedding.npy"), user_emb)
+            uid = np.array(user['user_id']).reshape(-1, 1)
+            batch_result = np.concatenate([uid, model_output], axis=1)
+            result = np.concatenate(result, batch_result) if result is not None else batch_result
+            if result.shape[0] >= 100000:
+                np.save(os.path.join(config['mmap_out'], f"all_user_embedding_{file_count}.npy"), result)
+                file_count += 1
+                result = None
+        np.save(os.path.join(config['mmap_out'], "all_user_embedding.npy"), result)
         return
 
     result = trainer.evaluate(test_loader, model=model, show_progress=config['show_progress'])
