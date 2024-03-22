@@ -116,7 +116,7 @@ def main(**kwargs):
             batch_result = np.concatenate([uid, model_output], axis=1)
             result = np.concatenate([result, batch_result]) if result is not None else batch_result
             if result.shape[0] >= 100000:
-                np.save(os.path.join(config['mmap_out'], f"all_user_embedding_{file_count}.npy"), result)
+                np.save(os.path.join(config['mmap_out'], f"all_user_embedding_{str(file_count).zfill(5)}.npy"), result)
                 file_count += 1
                 result = None
         np.save(os.path.join(config['mmap_out'], "all_user_embedding.npy"), result)
