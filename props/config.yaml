@@ -6,16 +6,16 @@ topk: [10, 50]
 metrics: [HIT, NDCG]
 valid_metric: NDCG@10
 train_batch_size: 2048
-eval_batch_size: 64
+eval_batch_size: 2048
 stopping_step: 10  # early stopping step
 epochs: 2   # maximum number of epochs
 
 preprocess: False
 language_model: 'bert-base-uncased-local'
 selected_keys: ["tag1", "tag2", "title", "description"]
-metadata_path: ~
-mmap_out: .
-mmap_idx_path: 'dataset/customized/Scientific/mmap/mmap_idx_4386'
-mmap_idx_shape: [4386,]
-mmap_emb_path: 'dataset/customized/Scientific/mmap/mmap_emb_4386_768'
-mmap_emb_shape: [4386, 768]
+metadata_path: 'dataset/customized/preprocess/metadata.jsonl'
+mmap_out: 'dataset/customized/preprocess/mmap'
+mmap_idx_path: /home/me0w/Desktop/hw_rec/UniSRec/dataset/customized/preprocess/mmap/mmap_idx_100000
+mmap_idx_shape: [100000,]
+mmap_emb_path: /home/me0w/Desktop/hw_rec/UniSRec/dataset/customized/preprocess/mmap/mmap_emb_100000_768
+mmap_emb_shape: [100000, 768]

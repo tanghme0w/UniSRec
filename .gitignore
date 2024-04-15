@@ -2,3 +2,7 @@ __pycache__/
 log/
 log_tensorboard/
 dataset/
+saved/
+.idea/
+.DS_Store
+bert*/
